@@ -32,6 +32,6 @@ jobs:
 
       # Step 4: Run tests
       - name: Run pytest
-        working-directory: .CYBERSECURITY
+        working-directory: CYBERSECURITY
         run: |
           pytest --maxfail=1 --disable-warnings -q
