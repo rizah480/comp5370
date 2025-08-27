@@ -23,14 +23,14 @@ def test_add_two_numbers_positive_2():
 def test_process_num_invalid_input():
     val : str = '01201'
     try:
-        deserializer.Deserializer.process_num(val)
+        deserializer.Deserializer.process_num("a",val)
         assert False, "Expected ValueError"
     except ValueError as e:
         assert str(e) == "Input string must be a binary string"
         
 def test_process_num_valid_input():
     val : str = '1010'
-    assert deserializer.Deserializer.process_num(val) == -6
+    assert deserializer.Deserializer.process_num( "a" ,val) == -6
     
 # PROCESS_NUM AND DECODE_NUM COVERAGE IS 100% NOW
 # ------------------------
@@ -38,21 +38,21 @@ def test_process_num_valid_input():
 # ------------------------
 
 def test_process_num_valid_inputs():
-    assert deserializer.Deserializer.process_num("0") == 0
-    assert deserializer.Deserializer.process_num("1") == -1  # one bit, sign bit set
-    assert deserializer.Deserializer.process_num("1010") == -6  # from doc example
-    assert deserializer.Deserializer.process_num("11110110") == -10  # from doc example
+    assert deserializer.Deserializer.process_num("a","0") == 0
+    assert deserializer.Deserializer.process_num("a","1") == -1  # one bit, sign bit set
+    assert deserializer.Deserializer.process_num("a","1010") == -6  # from doc example
+    assert deserializer.Deserializer.process_num("a","11110110") == -10  # from doc example
 
 def test_process_num_invalid_inputs():
     bad_inputs = ["", "2", "abc", "10102", " 1010", "1010 ", "\n1010", "10x01"]
     for val in bad_inputs:
         with pytest.raises(ValueError, match="Input string must be a binary string"):
-            deserializer.Deserializer.process_num(val)
+            deserializer.Deserializer.process_num("a",val)
 
 def test_process_num_large_input():
     # 64-bit wide binary string (positive)
     bstr = "0" + "1" * 63
-    result = deserializer.Deserializer.process_num(bstr)
+    result = deserializer.Deserializer.process_num("a",bstr)
     assert isinstance(result, int)
 
 
@@ -94,7 +94,7 @@ def test_decode_num_large_negative():
 def test_process_num_and_decode_match():
     """process_num should just wrap decode_num with validation"""
     bstr = "1110"
-    assert deserializer.Deserializer.process_num(bstr) == deserializer.Deserializer.decode_num(bstr)
+    assert deserializer.Deserializer.process_num("a",bstr) == deserializer.Deserializer.decode_num(bstr)
 
     
     
