@@ -1,2 +1,2 @@
-./Deserializer/__pycache__/*
-./tests/__pycache__/*
+/Deserializer/__pycache__/*
+/tests/__pycache__/*

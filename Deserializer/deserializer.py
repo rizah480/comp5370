@@ -33,7 +33,7 @@ class Deserializer:
         if re.match(r"^[01]+$", val) is None:
             raise ValueError("Input string must be a binary string")
         
-        return Deserializer.decode_num(val)
+        return f"{key} -- num -- {Deserializer.decode_num(val)}"
     
     
     
@@ -119,9 +119,32 @@ class Deserializer:
             decoded = Deserializer.decode_complex_str(val)
             return f"{key} -- string -- {decoded}"
         return f"{key} -- string -- "
+    
+    
+    
+    
+    @staticmethod
+    def process_map(map_data: dict):
+        for key, val in map_data.items():
+            if not re.match(r"^[a-z]+$", key):
+                raise ValueError(f"Invalid key format: {key}")
+            if isinstance(val, str):
+                if re.match(r"^[01]+$", val):
+                    print(Deserializer.process_num(key, val))
+                elif re.match(r"^[a-zA-Z0-9 \t]+s$", val):
+                    print(Deserializer.process_simple_str(key, val))
+                else:
+                    print(Deserializer.process_complex_str(key, val))
 
-
+            elif isinstance(val, dict):
+                # Print the map header for this key
+                print(f"{key} -- map -- ")
+                print("begin-map")
+                Deserializer.process_map(val)   # recurse
+                print("end-map")
         
+                    
+                
     
     
         
