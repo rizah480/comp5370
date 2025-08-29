@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 
 
 class Deserializer:
@@ -72,6 +73,53 @@ class Deserializer:
             decoded = Deserializer.decode_simple_str(val)
             return f"{key} -- string -- {decoded}"
         return f"{key} -- string -- "
+    
+    
+    
+    
+        ### Representation #2: Complex-Strings
+    # In the complex representation, the string is percent-encoded in order to reuse
+    # pre-existing and well-tested libraries such as those used for encoding/decoding
+    # URLs. Where as simple-string may only represent a restricted set of characters,
+    # complex-strings can encode arbitrary bytes. While the marshalled-form can
+    # contain multiple percent-encoded bytes, it MUST include at least one (1)
+    # percent-encoded byte.
+
+    # Examples:
+    #     Marshalled nosj complex-string: ab%2Ccd
+    #     String value: "ab,cd"
+
+    #     Marshalled nosj complex-string: ef%00gh
+    #     String value: "ef<null-byte>gh"
+
+    
+    @staticmethod
+    def decode_complex_str(bstr: str) -> str:
+        
+        COMPLEX_STRING_PATTERN = re.compile(r'^(?:%[0-9A-Fa-f]{2}|.)*$')
+        
+        
+        # Step 1: Validate structure
+        if not COMPLEX_STRING_PATTERN.match(bstr):
+            raise ValueError(f"Invalid complex string format: {bstr}")
+
+        # Step 2: Ensure at least one percent-encoded sequence
+        if not re.search(r"%[0-9A-Fa-f]{2}", bstr):
+            raise ValueError(f"Complex string must contain at least one %XY sequence: {bstr}")
+
+        # Step 3: Decode (URL percent-decoding)
+        return urllib.parse.unquote(bstr)
+
+        
+        
+        
+    @staticmethod
+    def process_complex_str(key: str, val: str) -> str:
+        if val is not None and len(val) > 0:
+            decoded = Deserializer.decode_complex_str(val)
+            return f"{key} -- string -- {decoded}"
+        return f"{key} -- string -- "
+
 
         
     
