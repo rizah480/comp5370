@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Normalize line endings so byte-for-byte compares match the grader
+      # Keep LF line endings so byte compares match the grader.
       - name: Normalize line endings (LF)
         run: |
           git config --global core.autocrlf false
@@ -23,35 +23,51 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'    # use 3.12 unless 3.13 is explicitly required
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # optional for unit tests
+          # Optional if you keep unit tests
           if ls tests/*.py >/dev/null 2>&1; then pip install pytest; fi
 
-      # Ensure the Linux runner can execute ./main.py via shebang
-      - name: Make main.py executable
+      - name: Ensure main.py is executable
         run: chmod +x main.py
 
-      - name: Show tool versions
+      - name: Show repo tree (quick sanity)
         run: |
-          python --version
-          make --version || true
+          pwd
+          ls -la
+          echo
+          ls -la Deserializer || true
+          echo
+          head -n 3 main.py
 
-      # Run professor-style validation
+      - name: Show Makefile run command
+        run: |
+          make -n run FILE=spec-testcases/valid/0001.input || true
+
+      - name: Run one valid case (capture & compare)
+        run: |
+          set -e
+          ./main.py spec-testcases/valid/0001.input > got.out 2> got.err || true
+          echo "=== exit: $?"
+          echo "--- stdout (got.out) ---"; cat -A got.out
+          echo "--- stderr (got.err) ---"; cat -A got.err
+          echo "--- expected ---"; cat -A spec-testcases/valid/0001.output
+          diff -u spec-testcases/valid/0001.output got.out || true
+
       - name: Run auto-runner (spec-testcases)
         run: |
           python auto-runner.py
 
-      # Optional: run your local harness for extra diagnostics
-      - name: Run local harness
+      - name: Run local harness (run_suite.py)
         if: hashFiles('run_suite.py') != ''
-        run: python run_suite.py
+        run: |
+          python run_suite.py
 
-      # Optional: run pytest suite if present
       - name: Run pytest
-        if: always() && (hashFiles('tests/**/*.py') != '')
-        run: pytest -q
+        if: hashFiles('tests/**/*.py') != ''
+        run: |
+          pytest -q
