@@ -1,4 +1,4 @@
-name: CI (NOSJ deserializer)
+name: CI (NOSJ deserializer + partial collision)
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Keep LF line endings so byte compares match the grader.
+      # Keep LF line endings so byte compares match any grader.
       - name: Normalize line endings (LF)
         run: |
           git config --global core.autocrlf false
@@ -29,10 +29,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Optional if you keep unit tests
           if ls tests/*.py >/dev/null 2>&1; then pip install pytest; fi
 
-      - name: Ensure main.py is executable
+      - name: Ensure main.py is executable (if present)
+        if: hashFiles('main.py') != ''
         run: chmod +x main.py
 
       - name: Show repo tree (quick sanity)
@@ -42,13 +42,15 @@ jobs:
           echo
           ls -la Deserializer || true
           echo
-          head -n 3 main.py
+          head -n 3 main.py || true
 
-      - name: Show Makefile run command
+      - name: Show Makefile run command (if present at root)
+        if: hashFiles('Makefile') != ''
         run: |
           make -n run FILE=spec-testcases/valid/0001.input || true
 
-      - name: Run one valid case (capture & compare)
+      - name: Run one valid case (capture & compare)  # NOSJ quick smoke
+        if: hashFiles('spec-testcases/valid/0001.input') != ''
         run: |
           set -e
           ./main.py spec-testcases/valid/0001.input > got.out 2> got.err || true
@@ -59,15 +61,35 @@ jobs:
           diff -u spec-testcases/valid/0001.output got.out || true
 
       - name: Run auto-runner (spec-testcases)
-        run: |
-          python auto-runner.py
+        if: hashFiles('auto-runner.py') != ''
+        run: python auto-runner.py
 
       - name: Run local harness (run_suite.py)
         if: hashFiles('run_suite.py') != ''
-        run: |
-          python run_suite.py
+        run: python run_suite.py
 
       - name: Run pytest
         if: hashFiles('tests/**/*.py') != ''
-        run: |
-          pytest -q
+        run: pytest -q
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Partial SHA256 collision section (Makefile inside partial-collision/)
+      # ─────────────────────────────────────────────────────────────────────
+      - name: Partial collision — generate inputs & digests (4 threads)
+        working-directory: partial-collision
+        run: make THREADS=4 run
+
+      - name: Partial collision — verify (email prefix + last 4 bytes)
+        working-directory: partial-collision
+        run: make THREADS=4 verify
+
+      - name: Upload partial-collision artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: partial-collision-output
+          path: |
+            partial-collision/1-input.txt
+            partial-collision/1-sha256-digest.txt
+            partial-collision/2-input.txt
+            partial-collision/2-sha256-digest.txt
+            partial-collision/out.txt

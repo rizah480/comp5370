@@ -1,0 +1,2 @@
+Root cause: The parser stops at the first >) instead of enforcing EOF (modulo whitespace).
+Patch: After parsing the root map, skip trailing whitespace; if any non-whitespace remains, raise a standardized error and exit(66).

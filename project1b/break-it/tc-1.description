@@ -1,0 +1,2 @@
+ROOT cause:  è is not a part of the ascii range 
+patch tighten complex string validation to not allow accent marks over characters

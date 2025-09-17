@@ -1,0 +1,2 @@
+ROOT cause: The complex-string validator accepts unencoded whitespace. Its check only verifies “contains at least one %XY,” while the overall pattern allows any character. Thus inputs like A%27 aron%21 pass: the %27 satisfies the “at least one percent-byte” rule, and the raw space is never rejected. Per spec, whitespace inside a map is only allowed as part of a simple-string; complex-strings must be percent-encoded (space ⇒ %20)
+PATCH: Tighten complex-string validation: forbid raw whitespace (and optionally other structural chars) unless it’s percent-encoded. 
