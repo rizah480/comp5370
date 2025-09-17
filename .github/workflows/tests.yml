@@ -9,10 +9,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Keep LF line endings so byte compares match any grader.
       - name: Normalize line endings (LF)
         run: |
           git config --global core.autocrlf false
@@ -33,26 +35,46 @@ jobs:
         if: hashFiles('main.py') != ''
         run: chmod +x main.py
 
-      - name: Run NOSJ quick smoke (optional)
+      - name: Show repo tree (quick sanity)
+        run: |
+          pwd
+          ls -la
+          echo
+          ls -la Deserializer || true
+          echo
+          head -n 3 main.py || true
+
+      - name: Show Makefile run command (if present at root)
+        if: hashFiles('Makefile') != ''
+        run: |
+          make -n run FILE=spec-testcases/valid/0001.input || true
+
+      - name: Run one valid case (capture & compare)  # NOSJ quick smoke
         if: hashFiles('spec-testcases/valid/0001.input') != ''
         run: |
           set -e
           ./main.py spec-testcases/valid/0001.input > got.out 2> got.err || true
+          echo "=== exit: $?"
+          echo "--- stdout (got.out) ---"; cat -A got.out
+          echo "--- stderr (got.err) ---"; cat -A got.err
+          echo "--- expected ---"; cat -A spec-testcases/valid/0001.output
           diff -u spec-testcases/valid/0001.output got.out || true
 
-      - name: Run auto-runner (if present)
+      - name: Run auto-runner (spec-testcases)
         if: hashFiles('auto-runner.py') != ''
         run: python auto-runner.py
 
-      - name: Run local harness (if present)
+      - name: Run local harness (run_suite.py)
         if: hashFiles('run_suite.py') != ''
         run: python run_suite.py
 
-      - name: Run pytest (if present)
+      - name: Run pytest
         if: hashFiles('tests/**/*.py') != ''
         run: pytest -q
 
-      # ── Partial SHA256 collision ───────────────────────────────────────────
+      # ─────────────────────────────────────────────────────────────────────
+      # Partial SHA256 collision section (Makefile inside partial-collision/)
+      # ─────────────────────────────────────────────────────────────────────
       - name: Partial collision — generate inputs & digests (4 threads)
         working-directory: partial-collision
         run: make THREADS=4 run

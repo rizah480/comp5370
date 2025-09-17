@@ -1,8 +1,6 @@
-# Makefile living in partial-collision/
-# Targets:
-#   make run     -> run collision finder and produce input + digest files
-#   make verify  -> check email prefix + last 4 bytes collide
-#   make clean   -> remove generated files
+# Makefile in partial-collision/
+# Always (re)generate inputs, then verify.
+# Targets: make run | make verify | make clean
 
 PYTHON  := python3
 SCRIPT  := src/collision_sha256.py
@@ -15,23 +13,15 @@ INPUT2  := 2-input.txt
 DIGEST2 := 2-sha256-digest.txt
 OUT     := out.txt
 
-# Default target
+.PHONY: all run verify clean
 all: run
 
-run: $(INPUT1) $(DIGEST1) $(INPUT2) $(DIGEST2)
-
-# Step 1: generate the two Base64 inputs using your script
-$(INPUT1) $(INPUT2): $(SCRIPT)
+run:
 	@echo "Running collision finder with $(THREADS) threads..."
 	@$(PYTHON) $(SCRIPT) --email $(EMAIL) --threads $(THREADS) > $(OUT)
 	@awk -F' -- ' '/^INPUT 1/ {print $$2}' $(OUT) > $(INPUT1)
 	@awk -F' -- ' '/^INPUT 2/ {print $$2}' $(OUT) > $(INPUT2)
-
-# Step 2: compute SHA256 digests for both inputs
-$(DIGEST1): $(INPUT1)
 	@base64 -d $(INPUT1) | sha256sum | awk '{print $$1}' > $(DIGEST1)
-
-$(DIGEST2): $(INPUT2)
 	@base64 -d $(INPUT2) | sha256sum | awk '{print $$1}' > $(DIGEST2)
 
 verify: run
@@ -48,4 +38,3 @@ sys.exit(0 if (ok_email and ok_tail) else 1)'
 
 clean:
 	@rm -f $(INPUT1) $(DIGEST1) $(INPUT2) $(DIGEST2) $(OUT)
-
