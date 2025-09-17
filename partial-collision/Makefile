@@ -1,7 +1,7 @@
 # Makefile living in partial-collision/
 # Targets:
 #   make run     -> run collision finder and produce input + digest files
-#   make verify  -> run correctness checks (email prefix + last 4 bytes collide)
+#   make verify  -> check email prefix + last 4 bytes collide
 #   make clean   -> remove generated files
 
 PYTHON  := python3
@@ -15,7 +15,7 @@ INPUT2  := 2-input.txt
 DIGEST2 := 2-sha256-digest.txt
 OUT     := out.txt
 
-# Default: run (you can change to 'verify' if you prefer)
+# Default target
 all: run
 
 run: $(INPUT1) $(DIGEST1) $(INPUT2) $(DIGEST2)
@@ -36,20 +36,16 @@ $(DIGEST2): $(INPUT2)
 
 verify: run
 	@echo "Verifying collision..."
-	@$(PYTHON) - <<'PY'
-import base64, hashlib, sys
-EMAIL = b"aat0034@auburn.edu"
-m1 = base64.b64decode(open("1-input.txt").read().strip())
-m2 = base64.b64decode(open("2-input.txt").read().strip())
-d1 = hashlib.sha256(m1).digest()
-d2 = hashlib.sha256(m2).digest()
-ok_email = m1.startswith(EMAIL) and m2.startswith(EMAIL)
-ok_tail = d1[-4:] == d2[-4:]
-print("Both start with email:", ok_email)
-print("SHA256 last 4 equal?:", ok_tail, d1[-4:].hex(), d2[-4:].hex())
-if not (ok_email and ok_tail):
-    sys.exit(1)
-PY
+	@$(PYTHON) -c 'import base64,hashlib,sys; \
+m1=base64.b64decode(open("$(INPUT1)").read().strip()); \
+m2=base64.b64decode(open("$(INPUT2)").read().strip()); \
+d1=hashlib.sha256(m1).digest(); d2=hashlib.sha256(m2).digest(); \
+ok_email=m1.startswith(b"$(EMAIL)") and m2.startswith(b"$(EMAIL)"); \
+ok_tail=d1[-4:]==d2[-4:]; \
+print("Both start with email:", ok_email); \
+print("SHA256 last 4 equal?:", ok_tail, d1[-4:].hex(), d2[-4:].hex()); \
+sys.exit(0 if (ok_email and ok_tail) else 1)'
 
 clean:
-	rm -f $(INPUT1) $(DIGEST1) $(INPUT2) $(DIGEST2) $(OUT)
+	@rm -f $(INPUT1) $(DIGEST1) $(INPUT2) $(DIGEST2) $(OUT)
+
